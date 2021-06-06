@@ -1,38 +1,223 @@
-.App {
-  text-align: center;
-}
+.left {
+  flex: 0 0 700px;
+  width: 700px;
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.middle {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.right {
+  flex: 0 0 500px;
+  width: 500px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  margin: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%), 0 1px 2px rgb(0 0 0 / 24%);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+#candle-canvas {
+  flex: 1;
+}
+
+.code-container {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+}
+
+#code-editor {
+  flex: 1;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#balance-canvas {
+  flex: 0 0 200px;
+  height: 200px;
+}
+
+.controls {
+  flex: 0 0 200px;
+  height: 200px;
+  padding: 20px;
+}
+
+.control-buttons {
+  display: flex;
+}
+
+.control-buttons button {
+  flex: 1;
+}
+
+.control-buttons button:first-child {
+  margin-right: 20px;
+}
+
+.controls select {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.trades {
+  flex: 1;
+  color: #222222;
+  font-size: 14px;
+  padding: 20px;
+
+  overflow-y: auto;
+}
+
+.trade {
+  cursor: pointer;
+}
+
+button {
+  background: #5466fd;
+  border-radius: 33px;
+  padding: 0 20px;
+  border: none;
+  height: 30px;
+  cursor: pointer;
+  outline: none;
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
 }
 
-.App-link {
-  color: #61dafb;
+button:hover {
+  background: #2d48d6;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+input[type='text'] {
+  outline: none;
+  height: 30px;
+  border-radius: 33px;
+  border: 1px solid #cccccc;
+  padding-left: 10px;
+  font-family: Roboto;
+  font-size: 14px;
 }
+
+select {
+  outline: none;
+  height: 30px;
+  border-radius: 33px;
+  border: 1px solid #cccccc;
+  padding-left: 10px;
+  font-family: Roboto;
+  font-size: 14px;
+}
+
+.progress {
+  height: 20px;
+  border: 3px solid #5466fd;
+  border-radius: 10px;
+  margin-top: 20px;
+  position: relative;
+}
+
+.progress-bar {
+  height: 18px;
+  background: #5466fd;
+  border-radius: 10px;
+  position: absolute;
+  left: -1px;
+  top: -1px;
+}
+
+.progress-text {
+  position: absolute;
+  font-size: 14px;
+  text-align: center;
+  width: 100%;
+  font-weight: bold;
+  color: #5466fd;
+  top: -1px;
+}
+
+.progress-text-covered {
+  color: #fff;
+}
+
+th {
+  text-align: left;
+}
+
+td {
+  padding: 2px;
+  font-family: 'Roboto Condensed';
+}
+
+td:first-child {
+  font-family: Roboto;
+}
+
+.ace_editor, .ace-xcode .ace_gutter {
+  background: #ffffff;
+}
+
+.code-controls {
+  padding: 10px;
+  display: flex;
+}
+
+.code-controls button {
+  margin-left: 10px;
+}
+
+.code-controls input[type='text'] {
+  flex: 1;
+  margin-left: 10px;
+}
+
+.text-profit {
+  /*color: #26A69A;*/
+}
+
+.text-loss {
+  color: #EF5350;
+}
+
+*::-webkit-scrollbar {
+  background-color:#fff;
+  width:16px
+}
+
+*::-webkit-scrollbar-track {
+  background-color:#fff
+}
+*::-webkit-scrollbar-track:hover {
+  background-color:#f4f4f4
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color:#babac0;
+  border-radius:16px;
+  border:5px solid #fff;
+  min-height: 40px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color:#a0a0a5;
+  border:4px solid #f4f4f4
+}
+
+*::-webkit-scrollbar-button {display:none}
