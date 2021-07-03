@@ -1,11 +1,17 @@
 import { Util } from "trading-lib";
 import { OutputTrade, SimulationResult } from "./Simulation";
+import { SimulationCandles } from "./SimulationCandles";
 import { SimulationSettings } from "./SimulationSettings";
-import { SimulationUtil } from "./SimulationUtil";
 
 export interface AnalysisTrade extends OutputTrade {
   performance: number;
 };
+
+export interface MonteCarloResult {
+  percent: number;
+  drawdown: number;
+  monthlyROI: number;
+}
 
 export const Analysis = {
   getBalanceAtTime: (result: SimulationResult, date: Date): number => {
@@ -13,12 +19,12 @@ export const Analysis = {
     for (let i = 1; i < result.times.length; i++) {
       if (time < result.times[i]) return result.portfolioHistory[i - 1];
     }
-    throw new Error('No balance found for time ' + date);
+    return result.portfolioHistory[result.portfolioHistory.length - 1];
   },
 
   getPerformanceTrades: (result: SimulationResult): AnalysisTrade[] => result.trades.filter(t => t.filled && t.closed).map(trade => ({
     ...trade,
-    performance: (trade.profits || 0) / Analysis.getBalanceAtTime(result, trade.buyOrderDate as Date)
+    performance: (trade.profits || 0) / Analysis.getBalanceAtTime(result, trade.sellDate as Date)
   })),
 
   winners: (trades: AnalysisTrade[]) => trades.filter(t => t.performance > 0),
@@ -35,8 +41,59 @@ export const Analysis = {
   longs: (trades: AnalysisTrade[]) => trades.filter(t => t.direction === 'long'),
   shorts: (trades: AnalysisTrade[]) => trades.filter(t => t.direction === 'short'),
 
-  maxDrawdown: (result: SimulationResult) => SimulationUtil.getMaxDrawdown(result.portfolioHistory),
-  averageDrawdown: (result: SimulationResult) => SimulationUtil.getAverageDrawdown(result.portfolioHistory),
+  maxDrawdown: (trades: AnalysisTrade[]) => {
+    let balance = 1;
+
+    let top = balance;
+    let maxDrawdown = 0;
+
+    for (const trade of trades) {
+      balance += balance * trade.performance;
+
+      if (balance > top) {
+        top = balance;
+      } else {
+        const change = Math.abs(Util.change(top, balance));
+
+        if (change > maxDrawdown) {
+          maxDrawdown = change;
+        }
+      }
+    }
+
+    return maxDrawdown;
+  },
+  averageDrawdown: (trades: AnalysisTrade[]) => {
+    let balance = 1;
+
+    let top = balance;
+    let maxDrawdown = 0;
+
+    let numDrawdowns = 0;
+    let drawdown = 0;
+
+    for (const trade of trades) {
+      balance += balance * trade.performance;
+
+      if (balance > top) {
+        if (maxDrawdown > 0) {
+          drawdown += maxDrawdown;
+          numDrawdowns++;
+        }
+
+        maxDrawdown = 0;
+        top = balance;
+      } else {
+        const change = Math.abs(Util.change(top, balance));
+
+        if (change > maxDrawdown) {
+          maxDrawdown = change;
+        }
+      }
+    }
+
+    return drawdown / numDrawdowns;
+  },
 
   averageLoss: (trades: AnalysisTrade[]) => Math.abs(Analysis.expectedValue(Analysis.losers(trades))),
 
@@ -74,9 +131,31 @@ export const Analysis = {
   ratioTimeInMarket: (result: SimulationResult, trades: AnalysisTrade[]) => {
     let inMarket = 0, outMarket = 0;
 
-    for (let time = result.times[0]; time < result.times[result.times.length - 1]; time += 3600 * 24) {
+    const startTime = result.times[0];
+    const endTime = result.times[result.times.length - 1];
+    const step = (endTime - startTime) / 1000;
+
+    let tradeStart = 0;
+
+    for (let time = startTime; time < endTime; time += step) {
       const date = new Date(time * 1000);
-      if (trades.some(trade => date > trade.buyDate && date < trade.sellDate)) {
+      let found = false;
+
+      for (let i = tradeStart; i < trades.length; i++) {
+        const trade = trades[i];
+
+        if (date > trade.sellDate) {
+          tradeStart = i + 1;
+          continue;
+        }
+
+        if (date > trade.buyDate) {
+          found = true;
+          break;
+        }
+      }
+
+      if (found) {
         inMarket++;
       } else {
         outMarket++;
@@ -87,20 +166,17 @@ export const Analysis = {
   },
   
   averageTradesInMarket: (result: SimulationResult, trades: AnalysisTrade[]) => {
-    let total = 0;
-    let num = 0;
+    let totalTime = 0;
 
-    for (let time = result.times[0]; time < result.times[result.times.length - 1]; time += 3600 * 24) {
-      const date = new Date(time * 1000);
-      total += trades.filter(trade => date > trade.buyDate && date < trade.sellDate).length;
-      num++;
+    for (const trade of trades) {
+      totalTime += trade.sellDate.getTime() - trade.buyDate.getTime();
     }
-
-    return total / num;
+    
+    return (totalTime / 1000) / (result.times[result.times.length - 1] - result.times[0]);
   },
 
   roi: (trades: AnalysisTrade[], simSettings: SimulationSettings) => {
-    return (simSettings.capital + Analysis.netProfit(trades)) / simSettings.capital;
+    return Analysis.netProfit(trades) / simSettings.capital;
   },
 
   expectedValueOnMargin: (trades: AnalysisTrade[]) => {
@@ -130,7 +206,7 @@ export const Analysis = {
     for (let i = 0; i < result.monthlyBalances.length; i++) {
       const month = result.monthlyBalances[i];
 
-      if (rois.length == 0 || month.date.getUTCFullYear() > rois[rois.length - 1].year) {
+      if (rois.length === 0 || month.date.getUTCFullYear() > rois[rois.length - 1].year) {
         rois.push({
           year: month.date.getUTCFullYear(),
           months: []
@@ -174,6 +250,9 @@ export const Analysis = {
       /
       Analysis.expectedValue(Analysis.losers(trades))
     );
+
+    // const w = Analysis.winners(trades).length / trades.length;
+    // return w - ((1 - w) / (Analysis.winners(trades).length / Analysis.losers(trades).length));
   },
 
   sharpeRatio: (trades: AnalysisTrade[], simSettings: SimulationSettings): number => {
@@ -202,5 +281,108 @@ export const Analysis = {
     }
 
     return totalDivergence / balances.length;
+  },
+
+  monteCarlo: (
+    result: SimulationResult, 
+    trades: AnalysisTrade[], 
+    runs: number, 
+    simSettings: SimulationSettings
+  ): MonteCarloResult[] => {
+    const drawdowns: number[] = [];
+    const monthlyROIs: number[] = [];
+
+    for (let r = 0; r < runs; r++) {
+      const runTrades: AnalysisTrade[] = [];
+
+      for (let t = 0; t < trades.length; t++) {
+        runTrades.push(trades[Math.floor(Math.random() * trades.length)]);
+      }
+
+      drawdowns.push(Analysis.maxDrawdown(runTrades));
+      //monthlyROIs.push(Analysis.monthlyROI(result, runTrades, simSettings));
+    }
+
+    drawdowns.sort((a, b) => (b - a));
+    monthlyROIs.sort((a, b) => (a - b));
+
+    return [0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99].map(percent => ({
+      percent: percent,
+      drawdown: Util.avg(drawdowns.slice(0, Math.floor(runs * percent))),
+      monthlyROI: 0//Util.avg(monthlyROIs.slice(0, Math.floor(runs * percent)))
+    }));
+  },
+
+  hourOfDayExpectedValue: (trades: AnalysisTrade[]) => {
+    const result = [];
+    
+    for (let h = 0; h < 24; h++) {
+      result.push({
+        hour: h,
+        expectedValue: Analysis.expectedValue(trades.filter(trade => trade.buyDate.getUTCHours() === h))
+      });
+    }
+
+    return result;
+  },
+
+  covariance: (x: SimulationCandles, y: SimulationCandles): number => {
+    const firstX = x.get(0);
+    const firstY = y.get(0);
+
+    let startX = 0;
+    let startY = 0;
+
+    // Align series
+    while (startY < y.length && y.get(startY).time < firstX.time) {
+      startY++;
+    }
+    while (startX < x.length && x.get(startX).time < firstY.time) {
+      startX++;
+    }
+
+    if (x.get(startX).time != y.get(startY).time) throw new Error(`Can't find common start point for covariance test`);
+
+    let xTotal = 0, yTotal = 0;
+    let count = 0;
+
+    for (let i = 0; startX + i < x.length && startY + i < y.length; i++) {
+      xTotal += x.get(startX + i).close;
+      yTotal += y.get(startY + i).close;
+      count++;
+    }
+
+    const xMean = xTotal / count;
+    const yMean = yTotal / count;
+
+    let sum = 0;
+
+    for (let i = 0; startX + i < x.length && startY + i < y.length; i++) {
+      sum += (x.get(startX + i).close - xMean) * (y.get(startY + i).close - yMean);
+    }
+
+    return sum / count;
+  },
+
+  candlesStandardDeviation: (x: SimulationCandles): number => {
+    let total = 0;
+
+    x.forEach(candle => {
+      total += candle.close;
+    });
+
+    const mean = total / x.length;
+
+    let sum = 0;
+
+    x.forEach(candle => {
+      sum += Math.pow(candle.close - mean, 2);
+    });
+
+    return Math.sqrt(sum / (x.length - 1));
+  },
+
+  correlation: (x: SimulationCandles, y: SimulationCandles): number => {
+    return Analysis.covariance(x, y) / (Analysis.candlesStandardDeviation(x) * Analysis.candlesStandardDeviation(y));
   }
 };

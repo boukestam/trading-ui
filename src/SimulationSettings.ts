@@ -5,5 +5,6 @@ export interface SimulationSettings {
   dataInterval: string;
   simulationInterval: string;
   fundingFee: number;
+  slippage: number;
   symbols: string[];
 }

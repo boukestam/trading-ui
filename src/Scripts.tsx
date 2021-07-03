@@ -24,6 +24,19 @@ const createScript = (name: string): void => {
   localStorage.setItem('scripts', JSON.stringify([...getScriptNames(), name]));
 };
 
+function download(filename: string, text: string, mimetype: string) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:' + mimetype + ';charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+
+  element.style.display = 'none';
+  document.body.appendChild(element);
+
+  element.click();
+
+  document.body.removeChild(element);
+}
+
 export function Scripts ({onChange}: {onChange: (script: string) => void}) {
   const [script, setScript] = useState<string | null>(null);
   const [scriptSource, setScriptSource] = useState<string>('');
@@ -41,7 +54,7 @@ export function Scripts ({onChange}: {onChange: (script: string) => void}) {
     if (scripts.length > 0) {
       openScript(localStorage.getItem('last') || scripts[0]);
     }
-  }, []);
+  });
 
   return (
     <React.Fragment>
@@ -80,6 +93,13 @@ export function Scripts ({onChange}: {onChange: (script: string) => void}) {
               saveScript(script, scriptSource);
             }
           }}>Save</button>
+          <button onClick={() => {
+            const data: {[script: string]: string} = {};
+            for (const script of getScripts()) {
+              data[script] = getScript(script);
+            }
+            download('scripts.json', JSON.stringify(data), 'application/json');
+          }}>Export</button>
         </div>
       </div>
     </React.Fragment>

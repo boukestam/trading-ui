@@ -4,6 +4,7 @@ import { Candles, OHLC, Util } from 'trading-lib';
 export class SimulationCandles implements Candles {
   buffer: ArrayBuffer;
   interval: string;
+  intervalTime: number;
   view: DataView;
   start: number;
   end: number;
@@ -12,13 +13,14 @@ export class SimulationCandles implements Candles {
   constructor(buffer: ArrayBuffer, interval: string, start: number = 0, end: number = -1) {
     this.buffer = buffer;
     this.interval = interval;
+    this.intervalTime = Util.intervalToMs(interval) / 1000;
     this.view = new DataView(this.buffer);
 
-    if (Math.floor(start) != start) {
+    if (Math.floor(start) !== start) {
       throw new Error('Start must be a integer');
     }
 
-    if (Math.floor(end) != end) {
+    if (Math.floor(end) !== end) {
       throw new Error('End must be a integer');
     }
 
@@ -74,24 +76,27 @@ export class SimulationCandles implements Candles {
     }
   }
 
-  getIndexOfTime(time: number): number {
-    /*
-    // Try to calculate the index
-    const firstTime = this.view.getInt32(0, true);
-    const secondTime = this.view.getInt32(20, true);
-    const difference = secondTime - firstTime;
-    const index = Math.floor((time - firstTime) / difference);
+  getOffset (offset: number): OHLC {
+    return this.get(this.length - 1 - offset);
+  }
 
-    if (index >= this.start && index < this.length && this.view.getInt32(index * 20, true) === time) {
-      return index - this.start;
-    }
-    */
+  getIndexOfTime(time: number): number {
+    // // Try to calculate the index
+    // const firstTime = this.view.getInt32(0, true);
+    // const index = Math.floor((time - firstTime) / this.intervalTime);
+
+    // if (
+    //   index >= this.start && 
+    //   index < this.length && 
+    //   this.view.getInt32(index * 20, true) + this.intervalTime > time) {
+    //   return index - this.start;
+    // }
 
     // Find the index by looping
     const end = this.end * 20;
     for (let i = this.start * 20; i < end; i += 20) {
       const t = this.view.getInt32(i, true);
-      if (t >= time) {
+      if (t + this.intervalTime > time) {
         return (i / 20) - this.start;
       }
     }
@@ -131,7 +136,7 @@ export class SimulationCandles implements Candles {
       const date = new Date(stick.time * 1000);
 
       if (!foundFirst) {
-        if (date.getHours() === 0 && date.getMinutes() === 0) {
+        if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0) {
           foundFirst = true;
         } else {
           return;

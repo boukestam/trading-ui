@@ -2,16 +2,26 @@ import React from 'react';
 import { Settings, Util } from 'trading-lib';
 import { Analysis } from './Analysis';
 import { Display } from './Display';
-import { OutputTrade, SimulationResult } from './Simulation';
+import { SimulationResult } from './Simulation';
 import { SimulationSettings } from './SimulationSettings';
 import { SimulationUtil } from './SimulationUtil';
 
-export function Result ({result, simSettings, settings}: { result: SimulationResult; simSettings: SimulationSettings; settings: Settings}) {
-  const performanceTrades = Analysis.getPerformanceTrades(result);
+export const Result = React.memo(
+  (
+    {result, simSettings, settings}: { 
+      result: SimulationResult; 
+      simSettings: SimulationSettings; 
+      settings: Settings
+    }
+  ) => {
+  const performanceTrades = Analysis.getPerformanceTrades(result).sort((a, b) => a.sellDate.getTime() - b.sellDate.getTime());
+
   const longs = Analysis.longs(performanceTrades);
   const shorts = Analysis.shorts(performanceTrades);
 
-  return <div className="results">
+  const monteCarloResult = Analysis.monteCarlo(result, performanceTrades, 1000, simSettings);
+
+  return <div className="results container">
     <table>
       <thead>
         <tr>
@@ -204,11 +214,11 @@ export function Result ({result, simSettings, settings}: { result: SimulationRes
         </tr>
         <tr>
           <td>Max drawdown</td>
-          <td>{Display.percentage(Analysis.maxDrawdown(result))}</td>
+          <td>{Display.percentage(Analysis.maxDrawdown(performanceTrades))}</td>
         </tr>
         <tr>
           <td>Avg drawdown</td>
-          <td>{Display.percentage(Analysis.averageDrawdown(result))}</td>
+          <td>{Display.percentage(Analysis.averageDrawdown(performanceTrades))}</td>
         </tr>
         <tr>
           <td>Win ratio</td>
@@ -258,23 +268,6 @@ export function Result ({result, simSettings, settings}: { result: SimulationRes
     <table>
       <thead>
         <tr>
-          <th></th>
-          {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => <th key={month}>{month}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {Analysis.monthlyROIS(result).map(year => <tr key={year.year}>
-          <td><b>{year.year}</b></td>
-          {year.months.map(month => <td key={month.month} className={month.roi > 0 ? 'text-profit' : 'text-loss'}>
-            {Display.percentage(month.roi)}
-          </td>)}
-        </tr>)}
-      </tbody>
-    </table>
-
-    <table>
-      <thead>
-        <tr>
           <th>Symbol</th>
           <th>Trades</th>
           <th>Exp Value</th>
@@ -303,5 +296,37 @@ export function Result ({result, simSettings, settings}: { result: SimulationRes
         </tr>)}
       </tbody>
     </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Percent</th>
+          <th>Monthly ROI</th>
+          <th>Max drawdown</th>
+        </tr>
+      </thead>
+      <tbody>
+        {monteCarloResult.map((result, resultIndex) => <tr key={resultIndex}>
+          <td>{Display.percentage(result.percent)}</td>
+          <td>{Display.percentage(result.monthlyROI)}</td>
+          <td>{Display.percentage(result.drawdown)}</td>
+        </tr>)}
+      </tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Hour</th>
+          <th>Expected value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Analysis.hourOfDayExpectedValue(performanceTrades).map((result, resultIndex) => <tr key={resultIndex}>
+          <td>{Display.number(result.hour)}</td>
+          <td>{Display.percentage(result.expectedValue)}</td>
+        </tr>)}
+      </tbody>
+    </table>
   </div>
-};
+});

@@ -1,5 +1,6 @@
 import React from "react";
 import { Util } from "trading-lib";
+import { Display } from "./Display";
 import { OutputTrade } from "./Simulation";
 
 export function Trades ({trades, onClick}: {trades: OutputTrade[], onClick: (trade: OutputTrade) => void}) {
@@ -18,16 +19,23 @@ export function Trades ({trades, onClick}: {trades: OutputTrade[], onClick: (tra
         </tr>
       </thead>
       <tbody>
-        {trades.filter(trade => trade.filled && trade.closed).map((trade, tradeIndex) => (
-          <tr className="trade" key={tradeIndex} onClick={() => onClick(trade)}>
+        {trades.map((trade, tradeIndex) => (
+          <tr className="trade" key={tradeIndex} onClick={() => {
+            console.log(trade);
+            onClick(trade);
+          }}>
             <td>{trade.symbol}</td>
             <td>{trade.direction}</td>
-            <td>{trade.amount.toFixed(2)}</td>
+            <td>{Display.number(trade.amount)}</td>
             <td>{trade.buyDate && Util.timeToString(trade.buyDate)}</td>
             <td>{trade.sellDate && Util.timeToString(trade.sellDate)}</td>
-            <td><span className={(trade.profits || 0) > 0 ? 'text-profit' : 'text-loss'}>{(trade.profits || 0).toFixed(2)}</span></td>
-            <td>{trade.buy.toFixed(4)}</td>
-            <td>{trade.sell.toFixed(4)}</td>
+            <td>
+              <span className={(trade.profits || 0) > 0 ? 'text-profit' : 'text-loss'}>
+                {Display.number(trade.profits || 0)}
+              </span>
+            </td>
+            <td>{Display.number(trade.buy)}</td>
+            <td>{trade.sell && Display.number(trade.sell)}</td>
           </tr>
         ))}
       </tbody>

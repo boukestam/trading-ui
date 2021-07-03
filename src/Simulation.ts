@@ -23,6 +23,8 @@ export interface OutputTrade extends Trade {
   stopOrders?: { orderId: number; amount: number; limit: number }[],
   signal?: any;
   note?: string;
+  maxProfit: number;
+  minProfit: number;
 }
 
 export interface SimulationPair extends Pair {
@@ -60,6 +62,8 @@ export interface SimulationResult {
   simulationTime: number;
   closePrices: {[symbol: string]: number};
   monthlyBalances: {date: Date; balance: number}[];
+  settings: Settings;
+  simSettings: SimulationSettings;
 };
 
 export async function runSimulation (
@@ -68,7 +72,7 @@ export async function runSimulation (
   tradingStart: Date, 
   tradingEnd: Date, 
   settings: Settings,
-  simulationSettings: SimulationSettings,
+  simSettings: SimulationSettings,
   onEvent: (event: StrategyEvent) => {} | undefined
 ): Promise<SimulationResult> {
   const start = new Date();
@@ -96,7 +100,7 @@ export async function runSimulation (
   const timeRange = endTime - startTime;
 
   let time = startTime;
-  const intervalTime = Util.intervalToMs(simulationSettings.simulationInterval) / 1000;
+  const intervalTime = Util.intervalToMs(simSettings.simulationInterval) / 1000;
 
   let lastProgressPercentage = 0;
 
@@ -106,6 +110,10 @@ export async function runSimulation (
       let someActive = false;
 
       for (const pair of provider.pairs) {
+        if (pair.index >= pair.simulationCandles.length) {
+          throw new Error(`Symbol ${pair.symbol} ran out of candles at ${new Date(iTime * 1000)}`);
+        }
+
         let candle = pair.simulationCandles.get(pair.index);
 
         while (candle.time < time) {
@@ -210,6 +218,8 @@ export async function runSimulation (
     times,
     simulationTime: new Date().getTime() - start.getTime(),
     closePrices,
-    monthlyBalances
+    monthlyBalances,
+    settings,
+    simSettings
   };
 }

@@ -1,15 +1,18 @@
-import { Candles, Logger, Pair, CandleResult, Provider, Settings, Trade, Util } from 'trading-lib';
+import { Logger, Provider, Settings, Trade, Util, History, Candles } from 'trading-lib';
 import { OutputTrade, SimulationPair } from './Simulation';
 import { SimulationSettings } from './SimulationSettings';
+import { SimulationTrade } from './SimulationTrade';
 import { SimulationUtil } from './SimulationUtil';
 
 export class SimulationProvider implements Provider {
   pairs: SimulationPair[];
   balance: number;
-  trades: Trade[];
+  trades: SimulationTrade[];
   settings: Settings;
   simulationSettings: SimulationSettings;
   date: Date;
+
+  cachedTrades: SimulationTrade[] | null;
 
   constructor (pairs: SimulationPair[], startingBalance: number, settings: Settings, simulationSettings: SimulationSettings) {
     this.pairs = pairs;
@@ -18,6 +21,7 @@ export class SimulationProvider implements Provider {
     this.settings = settings;
     this.simulationSettings = simulationSettings;
     this.date = new Date();
+    this.cachedTrades = null;
   }
 
   setDate (date: Date): void {
@@ -28,29 +32,22 @@ export class SimulationProvider implements Provider {
     return this.date;
   }
 
-  async getCandles (pair: SimulationPair, interval: string): Promise<CandleResult> {
+  async getCandles (pair: SimulationPair, interval: string): Promise<Candles> {
     if (!(interval in pair.candles)) {
       pair.candles[interval] = pair.simulationCandles.transform(interval);
     }
 
     const index = pair.candles[interval].getIndexOfTime(this.date.getTime() / 1000);
     const candles = pair.candles[interval].range(index - 500, index);
-    const [min, max] = candles.minMax();
-
-    //console.log(candles.length, new Date(candles.get(candles.length - 1).time * 1000), this.date);
   
-    return {
-      candles,
-      min,
-      max
-    };
+    return candles;
   }
 
   async updatePrices (): Promise<void> {
     
   }
 
-  async order (pair: SimulationPair, direction: 'long' | 'short', limit: number | 'market', stop: number, amount: number, signal?: any): Promise<void> {
+  async order (pair: SimulationPair, direction: 'long' | 'short', limit: number | 'market', stop: number, amount: number, meta: { [key: string]: any }): Promise<void> {
     if (
       (direction === 'long' && pair.price > limit) ||
       (direction === 'short' && pair.price < limit)
@@ -61,13 +58,19 @@ export class SimulationProvider implements Provider {
 
     if (amount < 0) throw new Error('Quantity less than 0');
 
-    const limitPrice = limit === 'market' ? pair.price : limit;
+    let limitPrice = limit === 'market' ? pair.price : limit;
+
+    if (direction === 'long') {
+      limitPrice *= 1 + this.simulationSettings.slippage;
+    } else {
+      limitPrice *= 1 - this.simulationSettings.slippage;
+    }
 
     const cost = (amount * limitPrice) / this.settings.leverage;
 
     Logger.log(`Opening trade on ${pair.symbol} at ${limit}`);
 
-    const trade: Trade = {
+    const trade: SimulationTrade = {
       pair,
       filled: false,
       direction,
@@ -76,7 +79,9 @@ export class SimulationProvider implements Provider {
       cost,
       amount,
       buyOrderDate: this.date,
-      signal
+      meta,
+      maxProfit: 0,
+      minProfit: 0
     };
 
     if (this.settings.fixedProfit) {
@@ -98,29 +103,48 @@ export class SimulationProvider implements Provider {
     this.trades.push(trade);
   }
 
-  async cancelOrder (order: Trade): Promise<void> {
+  async cancelOrder (order: SimulationTrade): Promise<void> {
     Logger.log(`Cancelling order for ${order.pair.symbol} on ${this.date}`);
     this.trades.splice(this.trades.indexOf(order), 1);
   }
 
-  async closePosition (position: Trade, limitPrice?: number, note?: string): Promise<void> {
+  async closePosition (position: Trade, limitPrice?: number, ratio: number = 1, note?: string): Promise<void> {
     if (position.closed) throw new Error('Position is already closed');
     
-    const price = limitPrice || position.pair.price;
+    let price = (limitPrice || position.pair.price);
+
+    if (position.direction === 'long') {
+      price *= 1 - this.simulationSettings.slippage;
+    } else {
+      price *= 1 + this.simulationSettings.slippage;
+    }
+
+    if (ratio < 1) {
+      const keepOpenPosition = position;
+
+      position = {
+        ...keepOpenPosition,
+        amount: keepOpenPosition.amount * ratio,
+        cost: keepOpenPosition.cost * ratio
+      };
+
+      keepOpenPosition.amount *= 1 - ratio;
+      keepOpenPosition.cost *= 1 - ratio;
+    }
 
     position.sell = price;
     position.sellDate = this.date;
 
     const profits = SimulationUtil.getTradeProfits(position, price, this.settings.fee);
-    position.profits = profits - position.cost;
+    position.profits = profits - position.cost - (position.amount * price * this.settings.fee * 2);
 
     Logger.log(`Sell ${position.pair.symbol} position on ${this.date} at ${price} for ${profits}`);
 
-    this.balance += profits;
+    this.balance += profits - (position.amount * price * this.settings.fee);
 
     position.closed = true;
 
-    position.note = note;
+    position.meta.note = note;
   }
 
   async getBalance (): Promise<number> {
@@ -141,12 +165,16 @@ export class SimulationProvider implements Provider {
     return size;
   }
 
-  async getPositions (): Promise<Trade[]> {
+  async getPositions (): Promise<SimulationTrade[]> {
+    if (this.cachedTrades) return this.cachedTrades;
+
     const result = [];
 
     for (const trade of this.trades) {
       if (!trade.closed) result.push(trade);
     }
+
+    this.cachedTrades = result;
 
     return result;
   }
@@ -164,6 +192,20 @@ export class SimulationProvider implements Provider {
     return output;
   }
 
+  async getHistory (): Promise<History[]> {
+    const result: History[] = [];
+
+    for (const trade of this.trades) {
+      if (trade.filled && trade.closed) result.push({
+        symbol: trade.pair.symbol,
+        income: trade.profits || 0,
+        time: trade.buyDate as Date
+      });
+    }
+
+    return result;
+  }
+
   async moveStop (position: Trade, stop: number): Promise<void> {
     if (
       (position.direction === 'long' && stop > position.pair.price) ||
@@ -177,6 +219,8 @@ export class SimulationProvider implements Provider {
   }
 
   async update (): Promise<void> {
+    this.cachedTrades = null;
+
     if (await this.getPortfolioSize() <= 0) throw new Error(`Account is liquidated on ${this.date}`);
 
     const positions = await this.getPositions();
@@ -240,10 +284,10 @@ export class SimulationProvider implements Provider {
         (position.direction === 'long' && (price <= position.stop || (position.profit && price >= position.profit))) || 
         (position.direction === 'short' && (price >= position.stop || (position.profit && price <= position.profit)))
       ) {
-        await this.closePosition(position, position.stop, 'Stop loss');
+        await this.closePosition(position, position.stop, 1, 'Stop loss');
       } else {
         const profits = SimulationUtil.getTradeProfits(position, price, this.settings.fee);
-        position.profits = profits - position.cost;
+        position.profits = profits - position.cost - (position.amount * price * this.settings.fee * 2);
       }
     }
   }

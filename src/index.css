@@ -5,10 +5,11 @@ html, body, #root, .App {
   font-family: 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
 
   display: flex;
 

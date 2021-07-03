@@ -17,6 +17,27 @@ const run = async function (
   settings: Settings, 
   onEvent: any | undefined
 ) {
+  const script = compileScript(scriptCode);
+  if (scriptOptions) {
+    script.options = scriptOptions;
+  }
+
+  settings = {
+    ...settings,
+    ...script.options
+  };
+
+  simSettings = {
+    ...simSettings,
+    ...script.options
+  };
+
+  script.options = {
+    ...script.options,
+    ...simSettings,
+    ...settings
+  }
+
   const pairs: SimulationPair[] = data.map((p): SimulationPair => {
     const simulationCandles = new SimulationCandles(p.buffer, simSettings.dataInterval);
 
@@ -35,24 +56,13 @@ const run = async function (
     };
   });
 
-  const script = compileScript(scriptCode);
-  if (scriptOptions) {
-    script.options = scriptOptions;
-  }
-
   return await runSimulation(
     new SimulationProvider(pairs, simSettings.capital, settings, simSettings),
     script,
     simSettings.start, 
     simSettings.end,
-    {
-      ...settings,
-      ...script.options
-    },
-    {
-      ...simSettings,
-      ...script.options
-    },
+    settings,
+    simSettings,
     onEvent
   );
 };
