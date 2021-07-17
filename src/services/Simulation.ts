@@ -1,3 +1,4 @@
+import { stat } from 'fs';
 import { Candles, Pair, Script, Settings, updateStrategy, Trade, Util } from 'trading-lib';
 import { SimulationProvider } from "./SimulationProvider";
 import { SimulationSettings } from "./SimulationSettings";
@@ -45,9 +46,10 @@ export interface StrategyProgressEvent extends StrategyEvent {
   type: 'progress';
   data: {
     percentage: number;
-    balance: number;
-    portfolio: number;
-    time: number;
+    balanceHistory: number[];
+    portfolioHistory: number[];
+    priceHistory: number[];
+    times: number[];
     trades: OutputTrade[];
   };
 }
@@ -56,8 +58,8 @@ export interface SimulationResult {
   balance: number;
   balanceHistory: number[];
   portfolioHistory: number[];
-  trades: OutputTrade[];
   priceHistory: number[];
+  trades: OutputTrade[];
   times: number[];
   simulationTime: number;
   closePrices: {[symbol: string]: number};
@@ -90,8 +92,8 @@ export async function runSimulation (
   const balances: number[] = [];
   const portolioSizes: number[] = [];
   const monthlyBalances = [];
-  const priceHistory = [];
-  const initialPrices = provider.pairs.map(pair => pair.simulationCandles.get(0).open);
+  const priceHistory: number[] = [];
+  const initialPrices = provider.pairs.map(pair => pair.simulationCandles.get(100).open);
 
   const times = [];
 
@@ -103,6 +105,7 @@ export async function runSimulation (
   const intervalTime = Util.intervalToMs(simSettings.simulationInterval) / 1000;
 
   let lastProgressPercentage = 0;
+  let lastStatPercentage = 0;
 
   while (time <= endTime) {
     for (let i = 0; i < 4; i++) {
@@ -139,43 +142,53 @@ export async function runSimulation (
         provider.setDate(new Date(iTime * 1000));
         await updateStrategy(provider, script, settings);
 
-        const percentage = Math.floor(((time - startTime) / timeRange) * 100);
-        if (percentage > lastProgressPercentage) {
+        const statPercentage = Math.floor(((time - startTime) / timeRange) * 1000);
+        const progressPercentage = Math.floor(((time - startTime) / timeRange) * 100);
+
+        if (statPercentage > lastStatPercentage) {
           times.push(iTime);
       
           balances.push(await provider.getBalance());
           portolioSizes.push(await provider.getPortfolioSize());
 
+          lastStatPercentage = statPercentage;
+        }
+
+        if (progressPercentage > lastProgressPercentage) {
           let pi = 0;
           let total = 0;
+          let num = 0;
 
           for (const pair of provider.pairs) {
             if (pair.price) {
-              total += pair.price / initialPrices[pi];
+              const v = (pair.price / initialPrices[pi]) * 100 - 100;
+              total += v;
+              num++;
             } else {
-              total += 1;
+              //total += 100;
             }
 
             pi++;
           }
 
-          priceHistory.push(total / provider.pairs.length);
+          priceHistory.push(100 + total);
 
           if (onEvent) {
             const event: StrategyProgressEvent = {
               type: 'progress',
               data: {
-                percentage: percentage,
-                balance: balances[balances.length - 1],
-                portfolio: portolioSizes[portolioSizes.length - 1],
-                time: times[times.length - 1],
+                percentage: progressPercentage,
+                balanceHistory: balances,
+                portfolioHistory: portolioSizes,
+                priceHistory: priceHistory,
+                times: times,
                 trades: await provider.getTrades()
               }
             };
             onEvent(event);
           }
 
-          lastProgressPercentage = percentage;
+          lastProgressPercentage = progressPercentage;
         }
       }
     }

@@ -326,6 +326,19 @@ export const Analysis = {
     return result;
   },
 
+  dayOfWeekExpectedValue: (trades: AnalysisTrade[]) => {
+    const result = [];
+    
+    for (let d = 0; d < 7; d++) {
+      result.push({
+        day: d,
+        expectedValue: Analysis.expectedValue(trades.filter(trade => trade.buyDate.getUTCDay() === d))
+      });
+    }
+
+    return result;
+  },
+
   covariance: (x: SimulationCandles, y: SimulationCandles): number => {
     const firstX = x.get(0);
     const firstY = y.get(0);

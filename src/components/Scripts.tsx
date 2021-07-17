@@ -37,7 +37,7 @@ function download(filename: string, text: string, mimetype: string) {
   document.body.removeChild(element);
 }
 
-export function Scripts ({onChange}: {onChange: (script: string) => void}) {
+export const Scripts = React.memo(({onChange}: {onChange: (script: string) => void}) => {
   const [script, setScript] = useState<string | null>(null);
   const [scriptSource, setScriptSource] = useState<string>('');
 
@@ -59,6 +59,7 @@ export function Scripts ({onChange}: {onChange: (script: string) => void}) {
   return (
     <React.Fragment>
       <div className="code-container container">
+        <div className="container-header">Script</div>
         <AceEditor
           mode="javascript"
           theme="xcode"
@@ -87,21 +88,27 @@ export function Scripts ({onChange}: {onChange: (script: string) => void}) {
           <input id="script-name" type="text"/>
           <button onClick={() => {
             createScript((document.getElementById('script-name') as HTMLInputElement).value);
-          }}>Create</button>
+          }}>
+            <span className="material-icons-round">add</span>
+          </button>
           <button onClick={() => {
             if (script) {
               saveScript(script, scriptSource);
             }
-          }}>Save</button>
+          }}>
+            <span className="material-icons-round">save</span>
+          </button>
           <button onClick={() => {
             const data: {[script: string]: string} = {};
             for (const script of getScripts()) {
               data[script] = getScript(script);
             }
             download('scripts.json', JSON.stringify(data), 'application/json');
-          }}>Export</button>
+          }}>
+            <span className="material-icons-round">file_download</span>
+          </button>
         </div>
       </div>
     </React.Fragment>
   );
-}
+});

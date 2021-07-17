@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { Util } from 'trading-lib';
-import { Analysis } from './Analysis';
-import { Display } from './Display';
-import { renderBars } from './Render';
-import {  SimulationResult } from './Simulation';
+import { Analysis } from '../services/Analysis';
+import { Display } from '../services/Display';
+import { renderBars } from '../services/Render';
+import {  SimulationResult } from '../services/Simulation';
 
 export const Performance = React.memo(
   (
@@ -18,7 +18,7 @@ export const Performance = React.memo(
     const y = [];
 
     const [min, max] = Util.minMax(trades.map(trade => trade.performance));
-    const step = (max - min) / 20;
+    const step = (max - min) / 100;
 
     for (let i = min; i < max; i += step) {
       x.push(i);
@@ -38,5 +38,8 @@ export const Performance = React.memo(
     );
   });
 
-  return <canvas id="performance-canvas" className="container"></canvas>
+  return <div className="container">
+    <div className="container-header">Return distribution</div>
+    <canvas id="performance-canvas"></canvas>
+  </div>
 });

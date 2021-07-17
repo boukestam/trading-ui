@@ -1,8 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&display=swap');;
+
+:root {
+  --primary-color: #08A287;
+  --primary-dark-color: #08816b;
+  --background-color: #F4F6F8;
+  --text-color: #101733;
+  --text-light-color: #898B96;
+  --panel-shadow: 0px 3px 1px 0px #E9E8EB; 
+}
 
 html, body, #root, .App {
   margin: 0;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -13,7 +22,8 @@ html, body, #root, .App {
 
   display: flex;
 
-  background: #f8f8f8;
+  background: var(--background-color);
+  color: var(--text-color);
 }
 
 * {

@@ -1,10 +1,10 @@
 import { expose } from "comlink";
 import {Settings, compileScript, Util } from 'trading-lib';
 
-import { SimulationProvider } from '../SimulationProvider';
-import { SimulationSettings } from '../SimulationSettings';
-import { SimulationCandles } from '../SimulationCandles';
-import { runSimulation, SimulationPair } from '../Simulation';
+import { SimulationProvider } from '../services/SimulationProvider';
+import { SimulationSettings } from '../services/SimulationSettings';
+import { SimulationCandles } from '../services/SimulationCandles';
+import { runSimulation, SimulationPair } from '../services/Simulation';
 
 const run = async function (
   data: {

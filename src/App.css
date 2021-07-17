@@ -1,6 +1,73 @@
+.App {
+  flex-direction: column;
+}
+
+.header {
+  flex: 0 0 70px;
+  height: 70px;
+  background: #ffffff;
+  box-shadow: var(--panel-shadow);
+  padding: 0 20px;
+
+  display: flex;
+  align-items: center;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  margin-right: 10px;
+}
+
+.header-title {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.header-links {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.header-link {
+  display: flex;
+  text-decoration: none;
+  color: #878C96;
+  padding: 0 10px;
+  height: 70px;
+  line-height: 70px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.header-link-active {
+  color: var(--text-color);
+  border-bottom: 2px solid #1BCDAE;
+  background: linear-gradient(180deg, rgba(255,255,255,0) 50%, rgba(27,205,174,0.1) 100%);
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+}
+
+.header-buttons {
+  display: flex;
+}
+
+.header-buttons button {
+  margin-left: 10px;
+}
+
+.content {
+  display: flex;
+  padding: 10px;
+}
+
 .left {
-  flex: 0 0 700px;
-  width: 700px;
+  flex: 0 0 600px;
+  width: 600px;
 
   display: flex;
   flex-direction: column;
@@ -25,17 +92,36 @@
 .container {
   margin: 10px;
   background: #ffffff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 12%), 0 1px 2px rgb(0 0 0 / 24%);
+  box-shadow: var(--panel-shadow);
   border-radius: 15px;
   overflow: hidden;
 }
 
+.container table {
+  margin: 20px;
+  margin-top: 0px;
+  width: calc(100% - 10px);
+}
+
+.container canvas {
+  margin: 20px;
+  width: 100%;
+}
+
+.container-header {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 20px;
+  border-bottom: 1px solid #F1F1F1;
+  margin-bottom: 20px;
+}
+
 #candle-canvas {
-  flex: 0 0 400px;
+  height: 250px;
 }
 
 .code-container {
-  flex: 0 0 700px;
+  flex: 0 0 600px;
 
   display: flex;
   flex-direction: column;
@@ -48,7 +134,6 @@
 }
 
 #balance-canvas {
-  flex: 0 0 200px;
   height: 200px;
 }
 
@@ -77,9 +162,7 @@
 
 .trades {
   flex: 0 0 400px;
-  color: #222222;
   font-size: 14px;
-  padding: 20px;
 
   overflow-y: auto;
 }
@@ -92,33 +175,13 @@
   background: #cccccc;
 }
 
-.results {
-  flex: 0 0 800px;
-  color: #222222;
-  font-size: 14px;
-  padding: 20px;
-
-  overflow-y: auto;
-}
-
-.monthly {
-  color: #222222;
-  font-size: 14px;
-  padding: 20px;
-}
-
-.correlation {
-  padding: 20px;
-  font-size: 14px;
-}
-
 .correlation th, .correlation td:first-child {
   font-weight: bold;
   font-size: 11px;
 }
 
 button {
-  background: #5466fd;
+  background: var(--primary-color);
   border-radius: 33px;
   padding: 0 20px;
   border: none;
@@ -133,8 +196,12 @@ button {
   justify-content: center;
 }
 
+button .material-icons-round {
+  font-size: 18px;
+}
+
 button:hover {
-  background: #2d48d6;
+  background: var(--primary-dark-color);
 }
 
 input[type='text'] {
@@ -143,7 +210,7 @@ input[type='text'] {
   border-radius: 33px;
   border: 1px solid #cccccc;
   padding-left: 10px;
-  font-family: Roboto;
+  font-family: Poppins;
   font-size: 14px;
 }
 
@@ -153,57 +220,52 @@ select {
   border-radius: 33px;
   border: 1px solid #cccccc;
   padding-left: 10px;
-  font-family: Roboto;
+  font-family: Poppins;
   font-size: 14px;
 }
 
 .progress {
-  height: 20px;
-  border: 3px solid #5466fd;
-  border-radius: 10px;
-  margin-top: 20px;
+  flex: 0 0 300px;
+  width: 300px;
   position: relative;
+  background: #EAEAEC;
+  height: 4px;
+  border-radius: 2px;
+  margin: 0 20px;
 }
 
 .progress-bar {
-  height: 18px;
-  background: #5466fd;
-  border-radius: 10px;
+  height: 4px;
+  background: var(--primary-color);
+  border-radius: 2px;
   position: absolute;
-  left: -1px;
-  top: -1px;
+  left: 0px;
+  top: 0px;
 }
 
 .progress-text {
-  position: absolute;
   font-size: 14px;
-  text-align: center;
-  width: 100%;
   font-weight: bold;
-  color: #5466fd;
-  top: -1px;
-}
-
-.progress-text-covered {
-  color: #fff;
+  color: var(--primary-color);
+  width: 50px;
 }
 
 table {
   border-collapse: collapse;
-  width: 100%;
 }
 
 th {
   text-align: left;
+  font-size: 12px;
 }
 
 td {
   padding: 2px;
-  font-family: 'Roboto Condensed';
+  font-size: 12px;
 }
 
 td:first-child {
-  font-family: Roboto;
+  font-family: Poppins;
 }
 
 .ace_editor, .ace-xcode .ace_gutter {

@@ -1,5 +1,5 @@
 import ByteBuffer from "./ByteBuffer";
-import { Candles, OHLC, Util } from 'trading-lib';
+import { Candles, OHLC, Util, Cache } from 'trading-lib';
 
 export class SimulationCandles implements Candles {
   buffer: ArrayBuffer;
@@ -9,12 +9,14 @@ export class SimulationCandles implements Candles {
   start: number;
   end: number;
   length: number;
+  cache: Cache;
 
-  constructor(buffer: ArrayBuffer, interval: string, start: number = 0, end: number = -1) {
+  constructor(buffer: ArrayBuffer, interval: string, start: number = 0, end: number = -1, cache: Cache = {}) {
     this.buffer = buffer;
     this.interval = interval;
     this.intervalTime = Util.intervalToMs(interval) / 1000;
     this.view = new DataView(this.buffer);
+    this.cache = cache;
 
     if (Math.floor(start) !== start) {
       throw new Error('Start must be a integer');
@@ -121,7 +123,7 @@ export class SimulationCandles implements Candles {
   }
 
   range(start: number, end: number): Candles {
-    return new SimulationCandles(this.buffer, this.interval, this.start + start, this.start + end);
+    return new SimulationCandles(this.buffer, this.interval, this.start + start, this.start + end, this.cache);
   }
 
   transform(interval: string): Candles {

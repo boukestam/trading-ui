@@ -1,8 +1,8 @@
 import { compileScript, Script, Settings } from "trading-lib";
 import { Analysis } from "./Analysis";
 import { Data } from "./Loader";
-import { Mode } from "./Modes";
-import { getScript } from "./Scripts";
+import { Mode } from "../Modes";
+import { getScript } from "../components/Scripts";
 import { runInWorker } from "./Worker";
 import { SimulationSettings } from "./SimulationSettings";
 
@@ -13,7 +13,6 @@ interface Evaluation {
   balance: number;
   trades: number;
   maxDrawdown: number;
-  sharpeRatio: number;
 }
 
 const evaluate = async (
@@ -37,12 +36,12 @@ const evaluate = async (
     const performanceTrades = Analysis.getPerformanceTrades(result);
 
     const maxDrawdown = Analysis.maxDrawdown(performanceTrades);
-    const sharpeRatio = Analysis.sharpeRatio(
-      performanceTrades,
-      simSettings
-    );
+    // const sharpeRatio = Analysis.sharpeRatio(
+    //   performanceTrades,
+    //   simSettings
+    // );
 
-    const expectedValue = Analysis.expectedValue(performanceTrades);
+    // const expectedValue = Analysis.monthlyROI(result, performanceTrades, sim);
 
     const evaluation = 
       //(Math.tanh(expectedValue * 100) + 1) * 0.01 * 
@@ -61,8 +60,7 @@ const evaluate = async (
       evaluation,
       balance: result.balance,
       trades: result.trades.length,
-      maxDrawdown,
-      sharpeRatio
+      maxDrawdown
     };
   } catch (e) {
     //console.error(e);
@@ -71,8 +69,7 @@ const evaluate = async (
       evaluation: 0,
       balance: 0,
       trades: 0,
-      maxDrawdown: 0,
-      sharpeRatio: 0
+      maxDrawdown: 0
     };
   }
 };

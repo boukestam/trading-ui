@@ -1,8 +1,10 @@
 export const Display = {
   number: (num: number): string => {
+    if (num === 0) return num.toString();
+    if (Math.abs(num) < 0.01) return num.toFixed(4);
     if (Math.abs(num) < 0.1) return num.toFixed(3);
-    if (Math.abs(num) < 10) return num.toFixed(2);
-    if (Math.abs(num) < Math.pow(10, 3)) return num.toFixed(1);
+    if (Math.abs(num) < 10) return num === Math.floor(num) ? num.toString() : num.toFixed(2);
+    if (Math.abs(num) < Math.pow(10, 3)) return num === Math.floor(num) ? num.toString() : num.toFixed(1);
     if (Math.abs(num) < Math.pow(10, 6)) return (num / Math.pow(10, 3)).toFixed(1) + 'K';
     if (Math.abs(num) < Math.pow(10, 9)) return (num / Math.pow(10, 6)).toFixed(1) + 'M';
     if (Math.abs(num) < Math.pow(10, 12)) return (num / Math.pow(10, 9)).toFixed(1) + 'B';

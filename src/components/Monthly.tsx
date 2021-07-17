@@ -1,7 +1,7 @@
 import React from 'react';
-import { Analysis } from './Analysis';
-import { Display } from './Display';
-import {  SimulationResult } from './Simulation';
+import { Analysis } from '../services/Analysis';
+import { Display } from '../services/Display';
+import {  SimulationResult } from '../services/Simulation';
 
 export const Monthly = React.memo(
   (
@@ -10,6 +10,7 @@ export const Monthly = React.memo(
     }
   ) => {
   return <div className="monthly container">
+    <div className="container-header">Monthly returns</div>
     <table>
       <thead>
         <tr>

@@ -1,16 +1,17 @@
 import React from "react";
 import { Util } from "trading-lib";
-import { Display } from "./Display";
-import { OutputTrade } from "./Simulation";
+import { Display } from "../services/Display";
+import { OutputTrade } from "../services/Simulation";
 
 export function Trades ({trades, onClick}: {trades: OutputTrade[], onClick: (trade: OutputTrade) => void}) {
   return <div className="trades container">
+    <div className="container-header">Trades</div>
     <table>
       <thead>
         <tr>
           <th>Symbol</th>
-          <th>Direction</th>
-          <th>Amount</th>
+          <th>Side</th>
+          <th>Qty</th>
           <th>Buy</th>
           <th>Sell</th>
           <th>Profit</th>
