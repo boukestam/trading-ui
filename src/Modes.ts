@@ -17,6 +17,7 @@ export interface Mode {
   maxCost: number;
   risk: number;
   slippage: number;
+  verboseLogger?: boolean;
 };
 
 const forexMode: Mode = {
@@ -41,7 +42,7 @@ const forexMode: Mode = {
 const commodityMode: Mode = {
   capital: 100,
   start: new Date(Date.UTC(2004, 0, 1)),
-  end: new Date(Date.UTC(2021, 5, 17, 19)),
+  end: new Date(Date.UTC(2019, 5, 17, 19)),
   fee: 0,
   slippage: 0.00015,
   fundingFee: 0.00005479452,
@@ -68,8 +69,8 @@ const commodityMode: Mode = {
 const altMode: Mode = {
   capital: 100,
   start: new Date(Date.UTC(2020, 0, 1)),
-  end: new Date(Date.UTC(2020, 11, 1)),
-  fee: 0.0004,
+  end: new Date(Date.UTC(2021, 2, 1)),
+  fee: 0.0007,
   fundingFee: 0.0001,
   leverage: 10,
   interval: '1h',
@@ -78,26 +79,44 @@ const altMode: Mode = {
   minBalance: 0.5,
   maxCost: 0.1,
   risk: 0.03,
-  slippage: 0,
-  getFileName: (symbol: string) => `/data/cache/${symbol}-1h-futures-binance-data.bin`,
+  slippage: 0.001,
+  // getFileName: (symbol: string) => `/data/cache/${symbol}-1h-futures-binance-data.bin`,
+  // symbols: [
+  //   'BTCUSDT',
+  //   'ETHUSDT',
+  //   'ADAUSDT',
+  //   'UNIUSDT',
+  //   'DOGEUSDT',
+  //   'BNBUSDT',
+  //   'VETUSDT',
+  //   'TRXUSDT',
+  //   'FILUSDT',
+  //   'LINKUSDT',
+  //   'ETCUSDT',
+  //   'SOLUSDT'
+  // ]
+  getFileName: (symbol: string) => `/data/cache/${symbol}-1h-futures-ftx-data.bin`,
   symbols: [
-    'BTCUSDT',
-    'ETHUSDT',
-    'ADAUSDT',
-    'UNIUSDT',
-    'DOGEUSDT',
-    'BNBUSDT',
-    'VETUSDT',
-    'TRXUSDT',
-    'FILUSDT',
-    'LINKUSDT',
-    'ETCUSDT'
-  ]
+    'ADA-PERP',
+    'BNB-PERP',
+    'BTC-PERP',
+    'DOGE-PERP',
+    'ETC-PERP',
+    'ETH-PERP',
+    'FIL-PERP',
+    'LINK-PERP',
+    'TRX-PERP',
+    'UNI-PERP',
+    'VET-PERP',
+    'SOL-PERP',
+    'FTT-PERP'
+  ],
 };
 
 const allMode: Mode = {
   ...altMode,
-  end: new Date(Date.UTC(2021, 6, 13, 8))
+  start: new Date(Date.UTC(2020, 11, 1)),
+  end: new Date(Date.UTC(2021, 6, 27, 21))
 };
 
 const spotMode: Mode = {
@@ -152,13 +171,27 @@ const historyMode: Mode = {
 
 const verifyMode: Mode = {
   ...altMode,
-  capital: 119.04,
-  start: new Date(Date.UTC(2021, 6, 1, 12)),
-  end: new Date(Date.UTC(2021, 6, 10, 19, 30)),
+  capital: 4806.95386288,
+  start: new Date(Date.UTC(2021, 6, 23, 22)),
+  end: new Date(Date.UTC(2021, 7, 17, 19)),
   interval: '1h',
-  dataInterval: '1m',
-  simulationInterval: '1m',
-  getFileName: (symbol: string) => `/data/cache/${symbol}-1m-futures-binance-data.bin`,
+  dataInterval: '1h',
+  simulationInterval: '1h',
+  //getFileName: (symbol: string) => `/data/cache/${symbol}-1h-futures-binance-data.bin`,
+  getFileName: (symbol: string) => `/data/cache/${symbol}-1h-futures-ftx-data.bin`,
+  // symbols: [
+  //   'ADAUSDT',
+  //   'BNBUSDT',
+  //   'BTCUSDT',
+  //   'DOGEUSDT',
+  //   'ETCUSDT',
+  //   'ETHUSDT',
+  //   'FILUSDT',
+  //   'LINKUSDT',
+  //   'TRXUSDT',
+  //   'UNIUSDT',
+  //   'VETUSDT'
+  // ],
   symbols: [
     'ADAUSDT',
     'BNBUSDT',
@@ -171,7 +204,8 @@ const verifyMode: Mode = {
     'TRXUSDT',
     'UNIUSDT',
     'VETUSDT'
-  ]
+  ].map(symbol => symbol.replace('USDT', '-PERP')),
+  verboseLogger: true
 };
 
 export const modes: {[key: string]: Mode} = {

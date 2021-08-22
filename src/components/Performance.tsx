@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Util } from 'trading-lib';
 import { Analysis } from '../services/Analysis';
 import { Display } from '../services/Display';
-import { renderBars } from '../services/Render';
+import { renderBars } from '../render/Bars';
 import {  SimulationResult } from '../services/Simulation';
 
 export const Performance = React.memo(
@@ -32,8 +32,8 @@ export const Performance = React.memo(
       document.getElementById('performance-canvas') as HTMLCanvasElement,
       x,
       y,
-      Display.number,
-      Display.number,
+      Display.numToString,
+      Display.numToString,
       false
     );
   });

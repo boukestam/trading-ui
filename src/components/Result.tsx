@@ -8,10 +8,11 @@ import { SimulationUtil } from '../services/SimulationUtil';
 
 export const Result = React.memo(
   (
-    {result, simSettings, settings}: { 
+    {result, simSettings, settings, onClickSymbol}: { 
       result: SimulationResult; 
       simSettings: SimulationSettings; 
-      settings: Settings
+      settings: Settings,
+      onClickSymbol: (symbol: string) => void
     }
   ) => {
   const performanceTrades = Analysis.getPerformanceTrades(result).sort((a, b) => a.sellDate.getTime() - b.sellDate.getTime());
@@ -67,13 +68,13 @@ export const Result = React.memo(
           <tr>
             <td>Expected value adj</td>
             <td>{Display.percentage(
-              Analysis.expectedValueOnMargin(performanceTrades) * 100
+              Analysis.expectedValueOnMargin(performanceTrades)
             )}</td>
             <td>{Display.percentage(
-              Analysis.expectedValueOnMargin(longs) * 100
+              Analysis.expectedValueOnMargin(longs)
             )}</td>
             <td>{Display.percentage(
-              Analysis.expectedValueOnMargin(shorts) * 100
+              Analysis.expectedValueOnMargin(shorts)
             )}</td>
           </tr>
           <tr>
@@ -138,21 +139,21 @@ export const Result = React.memo(
           </tr>
           <tr>
             <td>ROI</td>
-            <td>{Display.percentage((Analysis.roi(performanceTrades, simSettings) - 1))}</td>
-            <td>{Display.percentage((Analysis.roi(longs, simSettings) - 1))}</td>
-            <td>{Display.percentage((Analysis.roi(shorts, simSettings) - 1))}</td>
+            <td>{Display.percentage((Analysis.roi(performanceTrades, simSettings)))}</td>
+            <td>{Display.percentage((Analysis.roi(longs, simSettings)))}</td>
+            <td>{Display.percentage((Analysis.roi(shorts, simSettings)))}</td>
           </tr>
           <tr>
             <td>Annual ROI</td>
-            <td>{Display.percentage((Analysis.annualROI(result, performanceTrades, simSettings) - 1))}</td>
-            <td>{Display.percentage((Analysis.annualROI(result, longs, simSettings) - 1))}</td>
-            <td>{Display.percentage((Analysis.annualROI(result, shorts, simSettings) - 1))}</td>
+            <td>{Display.percentage((Analysis.annualROI(result, performanceTrades, simSettings)))}</td>
+            <td>{Display.percentage((Analysis.annualROI(result, longs, simSettings)))}</td>
+            <td>{Display.percentage((Analysis.annualROI(result, shorts, simSettings)))}</td>
           </tr>
           <tr>
             <td>Montly ROI</td>
-            <td>{Display.percentage((Analysis.monthlyROI(result, performanceTrades, simSettings) - 1))}</td>
-            <td>{Display.percentage((Analysis.monthlyROI(result, longs, simSettings) - 1))}</td>
-            <td>{Display.percentage((Analysis.monthlyROI(result, shorts, simSettings) - 1))}</td>
+            <td>{Display.percentage((Analysis.monthlyROI(result, performanceTrades, simSettings)))}</td>
+            <td>{Display.percentage((Analysis.monthlyROI(result, longs, simSettings)))}</td>
+            <td>{Display.percentage((Analysis.monthlyROI(result, shorts, simSettings)))}</td>
           </tr>
           <tr>
             <td>Win std err</td>
@@ -282,7 +283,7 @@ export const Result = React.memo(
         </thead>
         <tbody>
           {simSettings.symbols.map(symbol => <tr key={symbol}>
-            <td>{symbol}</td>
+            <td onClick={() => onClickSymbol(symbol)}>{symbol}</td>
             <td>{performanceTrades.filter(t => t.symbol === symbol).length}</td>
             <td>{Display.percentage(Analysis.expectedValue(
               performanceTrades.filter(t => t.symbol === symbol)

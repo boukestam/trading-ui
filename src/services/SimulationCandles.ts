@@ -98,8 +98,16 @@ export class SimulationCandles implements Candles {
     const end = this.end * 20;
     for (let i = this.start * 20; i < end; i += 20) {
       const t = this.view.getInt32(i, true);
-      if (t + this.intervalTime > time) {
+      const diff = time - (t + this.intervalTime);
+
+      if (diff < 0) {
         return (i / 20) - this.start;
+      }
+
+      const away = diff / this.intervalTime;
+
+      if (away > 10) {
+        i += Math.max(0, Math.floor(away - 5)) * 20;
       }
     }
 

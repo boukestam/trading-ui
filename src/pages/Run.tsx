@@ -4,21 +4,46 @@ import { Candles, compileScript, Settings } from 'trading-lib';
 
 import { SimulationCandles } from '../services/SimulationCandles';
 import { StrategyEvent, StrategyProgressEvent, OutputTrade, SimulationResult } from '../services/Simulation';
-import { colors, dateToString, renderCandles, renderLines } from '../services/Render';
+import { colors, dateToString } from '../render/Render';
 
 import { Result } from '../components/Result';
 import { getScript, Scripts } from '../components/Scripts';
 import { Trades } from '../components/Trades';
-import { getSettings, getSimSettings, Mode } from '../Modes';
+import { Mode } from '../Modes';
 import { Monthly } from '../components/Monthly';
 import { runInWorker } from '../services/Worker';
 import { Data } from '../services/Loader';
 import { Display } from '../services/Display';
 import { Performance } from '../components/Performance';
-import { Analysis } from '../services/Analysis';
 import { Correlations } from '../components/Correlations';
 import { SimulationSettings } from '../services/SimulationSettings';
 import { Interval } from '../components/Interval';
+import { LineGraph } from '../components/LineGraph';
+import { renderCandles } from '../render/Candles';
+
+const renderSymbol = (symbol: string, data: Data[], settings: Settings, simSettings: SimulationSettings, script: string) => {
+  if (data.length === 0) return;
+
+  const tradeData = data.find(d => d.symbol === symbol);
+  if (!tradeData) return;
+
+  let candles: Candles = new SimulationCandles(tradeData.buffer, simSettings.dataInterval);
+
+  const compiled = compileScript(getScript(script));
+
+  renderCandles(
+    document.getElementById('candle-canvas') as HTMLCanvasElement,
+    candles, 
+    candles.getOffset(0).time - 3600 * 24 * 2,
+    candles.getOffset(0).time,
+    [],
+    {
+      ...settings,
+      ...compiled.options
+    },
+    compiled.plot
+  );
+};
 
 const renderTrade = (trade: OutputTrade, data: Data[], settings: Settings, simSettings: SimulationSettings, script: string) => {
   if (data.length === 0) return;
@@ -68,6 +93,10 @@ export const Run = forwardRef<
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [data, setData] = useState<Data[] | null>(null);
 
+  const [times, setTimes] = useState<number[]>([]);
+  const [portfolioHistory, setPortfolioHistory] = useState<number[]>([]);
+  const [balanceHistory, setBalanceHistory] = useState<number[]>([]);
+
   useEffect(() => {
     getData(simSettings.simulationInterval).then(setData).catch(console.error);
   }, []);
@@ -88,24 +117,10 @@ export const Run = forwardRef<
         (event: StrategyEvent) => {
           if (event.type === 'progress') {
             const progressEvent = event as StrategyProgressEvent;
-      
-            renderLines(
-              document.getElementById('balance-canvas') as HTMLCanvasElement,
-              progressEvent.data.times,
-              [
-                //state.balanceHistory[1], 
-                progressEvent.data.portfolioHistory, 
-                //state.priceHistory[1]
-              ],
-              [
-                //'#ff6f00',
-                colors.green,
-                //'#ff6f00'
-              ],
-              dateToString,
-              Display.number,
-              true
-            );
+
+            setTimes(progressEvent.data.times);
+            setPortfolioHistory(progressEvent.data.portfolioHistory);
+            setBalanceHistory(progressEvent.data.balanceHistory);
       
             setTrades(event.data.trades);
       
@@ -113,7 +128,8 @@ export const Run = forwardRef<
           } else {
             console.log(event);
           }
-        }
+        },
+        mode.verboseLogger
       );
   
       console.log(result);
@@ -137,7 +153,7 @@ export const Run = forwardRef<
       <div className="left">
         <div className="container">
           <div className="container-header">Portolio</div>
-          <canvas id="balance-canvas"></canvas>
+          <LineGraph x={times} y={[portfolioHistory]} colors={[colors.green]} xFormat={dateToString} yFormat={Display.numToString} log={true} />
         </div>
 
         {result && <Performance result={result}/>}
@@ -165,7 +181,17 @@ export const Run = forwardRef<
       </div>
 
       <div className="right">
-        {result && <Result result={result} simSettings={result.simSettings} settings={result.settings}/>}
+        {result && <Result result={result} simSettings={result.simSettings} settings={result.settings} onClickSymbol={(symbol) => 
+          getData(simSettings.simulationInterval).then(data => {
+            renderSymbol(
+              symbol, 
+              data, 
+              settings, 
+              simSettings, 
+              script as string
+            )
+          })
+        }/>}
       </div>
     </>
   );

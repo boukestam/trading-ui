@@ -24,7 +24,7 @@ export const Analysis = {
 
   getPerformanceTrades: (result: SimulationResult): AnalysisTrade[] => result.trades.filter(t => t.filled && t.closed).map(trade => ({
     ...trade,
-    performance: (trade.profits || 0) / Analysis.getBalanceAtTime(result, trade.sellDate as Date)
+    performance: (trade.profits || 0) / Analysis.getBalanceAtTime(result, trade.buyDate as Date)
   })),
 
   winners: (trades: AnalysisTrade[]) => trades.filter(t => t.performance > 0),

@@ -12,8 +12,6 @@ export class SimulationProvider implements Provider {
   simulationSettings: SimulationSettings;
   date: Date;
 
-  cachedTrades: SimulationTrade[] | null;
-
   constructor (pairs: SimulationPair[], startingBalance: number, settings: Settings, simulationSettings: SimulationSettings) {
     this.pairs = pairs;
     this.balance = startingBalance;
@@ -21,7 +19,6 @@ export class SimulationProvider implements Provider {
     this.settings = settings;
     this.simulationSettings = simulationSettings;
     this.date = new Date();
-    this.cachedTrades = null;
   }
 
   setDate (date: Date): void {
@@ -148,11 +145,19 @@ export class SimulationProvider implements Provider {
   }
 
   async getBalance (): Promise<number> {
-    return this.balance;
+    let balance = await this.getPortfolioSize();
+
+    for (const trade of this.trades) {
+      if (!trade.closed && !trade.filled) {
+        balance -= trade.cost;
+      }
+    }
+
+    return balance;
   }
 
   async getAvailableBalance (): Promise<number> {
-    return (await this.getPortfolioSize()) - Util.sum((await this.getPositions()).filter(p => !p.filled).map(position => position.cost));
+    return this.balance;
   }
 
   async getPortfolioSize (): Promise<number> {
@@ -166,15 +171,11 @@ export class SimulationProvider implements Provider {
   }
 
   async getPositions (): Promise<SimulationTrade[]> {
-    if (this.cachedTrades) return this.cachedTrades;
-
     const result = [];
 
     for (const trade of this.trades) {
       if (!trade.closed) result.push(trade);
     }
-
-    this.cachedTrades = result;
 
     return result;
   }
@@ -219,8 +220,6 @@ export class SimulationProvider implements Provider {
   }
 
   async update (): Promise<void> {
-    this.cachedTrades = null;
-
     if (await this.getPortfolioSize() <= 0) throw new Error(`Account is liquidated on ${this.date}`);
 
     const positions = await this.getPositions();
@@ -236,59 +235,72 @@ export class SimulationProvider implements Provider {
       }
     }
 
-    for (const order of positions) {
-      if (order.filled) continue;
+    for (const trade of this.trades) {
+      if (trade.closed) continue;
 
-      const price = order.pair.price;
+      const price = trade.pair.price;
 
-      if (
-        (order.direction === 'long' && price >= order.limit) || 
-        (order.direction === 'short' && price <= order.limit)
-      ) {
-        order.buy = price;
-        order.buyDate = this.date;
+      if (!trade.filled) {
+        if (
+          (trade.direction === 'long' && price >= trade.limit) || 
+          (trade.direction === 'short' && price <= trade.limit)
+        ) {
+          trade.buy = price;
+          trade.buyDate = this.date;
 
-        this.balance -= order.cost + (order.amount * order.limit * this.settings.fee);
+          this.balance -= trade.cost + (trade.amount * trade.limit * this.settings.fee);
 
-        const existingPosition = positions.filter(p => p.filled).find(position => position.pair === order.pair && position.direction === order.direction);
-        if (existingPosition) {
-          const totalAmount = existingPosition.amount + order.amount;
-          const existingRatio = existingPosition.amount / totalAmount;
-          const orderRatio = order.amount / totalAmount;
+          const existingPosition = positions.filter(p => p.filled).find(position => position.pair === trade.pair && position.direction === trade.direction);
+          if (existingPosition) {
+            const totalAmount = existingPosition.amount + trade.amount;
+            const existingRatio = existingPosition.amount / totalAmount;
+            const orderRatio = trade.amount / totalAmount;
 
-          existingPosition.buy = ((existingPosition.buy || 0) * existingRatio) + (order.buy * orderRatio);
-          existingPosition.stop = (existingPosition.stop * existingRatio) + (order.stop * orderRatio);
-          existingPosition.cost += order.cost;
-          existingPosition.amount = totalAmount;
+            existingPosition.buy = ((existingPosition.buy || 0) * existingRatio) + (trade.buy * orderRatio);
+            existingPosition.stop = (existingPosition.stop * existingRatio) + (trade.stop * orderRatio);
+            existingPosition.cost += trade.cost;
+            existingPosition.amount = totalAmount;
 
-          this.trades.splice(this.trades.indexOf(order), 1);
+            this.trades.splice(this.trades.indexOf(trade), 1);
+          } else {
+            trade.filled = true;
+          }
+
+          Logger.log(`Buy ${trade.pair.symbol} position on ${this.date} at ${price} for ${trade.cost}`);
+        } else if (
+          (trade.direction === 'long' && price <= trade.stop) || 
+          (trade.direction === 'short' && price >= trade.stop)
+        ) {
+          await this.cancelOrder(trade);
+        }
+      } else {
+        if (trade.direction === 'long') {
+          if (price <= trade.stop) {
+            await this.closePosition(trade, trade.stop, 1, 'Stop loss');
+            continue;
+          } else if (trade.profit && price >= trade.profit) {
+            await this.closePosition(trade, trade.profit, 1, 'Take profit');
+            continue;
+          }
         } else {
-          order.filled = true;
+          if (price >= trade.stop) {
+            await this.closePosition(trade, trade.stop, 1, 'Stop loss');
+            continue;
+          } else if (trade.profit && price <= trade.profit) {
+            await this.closePosition(trade, trade.profit, 1, 'Take profit');
+            continue;
+          }
         }
 
-        Logger.log(`Buy ${order.pair.symbol} position on ${this.date} at ${price} for ${order.cost}`);
-      } else if (
-        (order.direction === 'long' && price <= order.stop) || 
-        (order.direction === 'short' && price >= order.stop)
-      ) {
-        await this.cancelOrder(order);
+        const profits = SimulationUtil.getTradeProfits(trade, price, this.settings.fee);
+        trade.profits = profits - trade.cost - (trade.amount * price * this.settings.fee * 2);
       }
     }
 
     for (const position of positions) {
       if (!position.filled) continue;
 
-      const price = position.pair.price;
-
-      if (
-        (position.direction === 'long' && (price <= position.stop || (position.profit && price >= position.profit))) || 
-        (position.direction === 'short' && (price >= position.stop || (position.profit && price <= position.profit)))
-      ) {
-        await this.closePosition(position, position.stop, 1, 'Stop loss');
-      } else {
-        const profits = SimulationUtil.getTradeProfits(position, price, this.settings.fee);
-        position.profits = profits - position.cost - (position.amount * price * this.settings.fee * 2);
-      }
+      
     }
   }
 }

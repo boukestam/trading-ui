@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { Util } from 'trading-lib';
 import { Analysis } from '../services/Analysis';
 import { Display } from '../services/Display';
-import { dateToString, renderBars } from '../services/Render';
+import { renderBars } from '../render/Bars';
+import { dateToString } from '../render/Render';
 import {  SimulationResult } from '../services/Simulation';
 
 export const Interval = React.memo(
@@ -33,7 +34,7 @@ export const Interval = React.memo(
       x,
       y,
       dateToString,
-      Display.number,
+      Display.numToString,
       false
     );
   });

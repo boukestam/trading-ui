@@ -12,7 +12,8 @@ export async function runInWorker (
   scriptOptions: Record<string, any> | null, 
   settings: Settings,
   simSettings: SimulationSettings,
-  callback?: (event: StrategyEvent) => void
+  callback?: (event: StrategyEvent) => void,
+  verbose: boolean = false
 ) {
   const worker = new Worker("../SimulationWorker", {
     name: "simulation-worker",
@@ -26,7 +27,8 @@ export async function runInWorker (
     scriptOptions, 
     simSettings, 
     settings, 
-    callback && proxy(callback)
+    callback && proxy(callback),
+    verbose
   );
 
   workerApi[releaseProxy]();

@@ -6,9 +6,9 @@ import { getScript } from "../components/Scripts";
 import { runInWorker } from "./Worker";
 import { SimulationSettings } from "./SimulationSettings";
 
-interface Solution { [key: string]: any }
+export interface Solution { [key: string]: any }
 
-interface Evaluation {
+export interface Evaluation {
   evaluation: number;
   balance: number;
   trades: number;
@@ -43,12 +43,7 @@ const evaluate = async (
 
     // const expectedValue = Analysis.monthlyROI(result, performanceTrades, sim);
 
-    const evaluation = 
-      //(Math.tanh(expectedValue * 100) + 1) * 0.01 * 
-      //Math.sqrt(performanceTrades.length) * 
-      (1 - maxDrawdown) * 
-      Math.sqrt(result.balance)
-    ;
+    const evaluation = Math.sqrt(result.balance) * (1 - maxDrawdown) * Math.sqrt(Math.sqrt(performanceTrades.length));
 
     //const evaluation = (1 - maxDrawdown) * sharpeRatio;// * Math.sqrt(performanceTrades.length);
 
@@ -234,7 +229,11 @@ export const genetic = async (
   data: Data[], 
   mode: Mode,
   settings: Settings, 
-  simSettings: SimulationSettings
+  simSettings: SimulationSettings,
+  populationSize: number,
+  iterations: number,
+  callback: (index: number, solution: Solution, evaluation: Evaluation) => void,
+  bestCallback: (solution: Solution, evaluation: Evaluation) => void
 ) => {
   const source = getScript(script);
   const compiled = compileScript(source);
@@ -246,13 +245,13 @@ export const genetic = async (
     }[] = [];
 
     // Generate random population
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < populationSize; i++) {
       population.push({
         solution: randomSolution(compiled)
       });
     }
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < iterations; i++) {
       const scores: {
         score: Evaluation,
         solution: Solution
@@ -262,7 +261,7 @@ export const genetic = async (
           solution: Solution
         }[]),
         ...(await promiseAllLimit(
-          10, 
+          Math.floor(populationSize / 3 * 2), 
           population.filter(p => !p.score).map(
             p => (
               async () => ({
@@ -276,21 +275,21 @@ export const genetic = async (
 
       scores.sort((a, b) => b.score.evaluation - a.score.evaluation);
 
-      console.log(i, scores[0].score, scores[0].solution);
+      callback(i, scores[0].solution, scores[0].score)
 
       population = [];
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < populationSize / 3; i++) {
         population.push({
           solution: scores[i].solution,
           score: scores[i].score
         });
       }
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < populationSize / 3; i++) {
         let neighbour: Solution;
 
         do {
-          neighbour = randomNeighbour(scores[i % 10].solution, compiled);
+          neighbour = randomNeighbour(scores[i % (populationSize / 3)].solution, compiled);
         } while (population.some(p => JSON.stringify(p.solution) === JSON.stringify(neighbour)))
 
         population.push({
@@ -298,7 +297,7 @@ export const genetic = async (
         });
       }
 
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < populationSize / 3; i++) {
         let random: Solution;
 
         do {
@@ -309,20 +308,40 @@ export const genetic = async (
           solution: random
         });
       }
-
-      //console.log(population);
     }
 
-    console.log('Best', population[0].score, JSON.stringify(population[0].solution));
+    bestCallback(population[0].solution, population[0].score as Evaluation);
   }
 };
+
+function forEachValue (
+  options: {
+    min: number;
+    max: number;
+    step: number;
+    values: string[];
+  },
+  callback: (value: any, valueIndex: number) => void
+) {
+  if (options.values) {
+    for (let valueIndex = 0; valueIndex < options.values.length; valueIndex++) {
+      const val = options.values[valueIndex];
+      callback(val, valueIndex);
+    }
+  } else {
+    for (let val = options.min; val <= options.max; val += options.step) {
+      callback(val, val);
+    }
+  }
+}
 
 export const list = async (
   script: string, 
   data: Data[], 
   mode: Mode,
   settings: Settings, 
-  simSettings: SimulationSettings
+  simSettings: SimulationSettings,
+  callback: (key: string, value: any, valueIndex: number, score: Evaluation) => void
 ) => {
   const source = getScript(script);
   const compiled = compileScript(source);
@@ -330,30 +349,86 @@ export const list = async (
   for (const key in compiled.optimize) {
     const options = compiled.optimize[key];
 
-    const promises = [];
-    const values = [];
+    const promises: (() => Promise<Evaluation>)[] = [];
 
-    if (options.values) {
-      for (const val of options.values) {
-        promises.push(() => evaluate({
+    forEachValue(options, (value, valueIndex) => {
+      promises.push(async () => {
+        const score = await evaluate({
           ...compiled.options,
-          [key]: val
-        }, source, data, mode, settings, simSettings));
-        values.push(val);
-      }
-    } else {
-      for (let val = options.min; val <= options.max; val += options.step) {
-        promises.push(() => evaluate({
-          ...compiled.options,
-          [key]: val
-        }, source, data, mode, settings, simSettings));
-        values.push(val);
-      }
-    }
+          [key]: value
+        }, source, data, mode, settings, simSettings);
 
-    const scores = await promiseAllLimit(10, promises);
-    for (let i = 0; i < scores.length; i++) {
-      console.log(key, values[i], scores[i]);
-    }
+        callback(key, value, valueIndex, score);
+
+        return score;
+      });
+    });
+
+    await promiseAllLimit(10, promises);
   }
+};
+
+export const grid = async (
+  script: string, 
+  data: Data[], 
+  mode: Mode,
+  settings: Settings, 
+  simSettings: SimulationSettings,
+  x: string,
+  y: string,
+  callback: (xKey: string, xValue: any, yKey: string, yValue: any, score: Evaluation) => void
+) => {
+  const source = getScript(script);
+  const compiled = compileScript(source);
+
+  const xOptions = compiled.optimize[x];
+  const yOptions = compiled.optimize[y];
+
+  const promises: (() => Promise<Evaluation>)[] = [];
+
+  forEachValue(xOptions, (xValue) => {
+    forEachValue(yOptions, (yValue) => {
+      promises.push(async () => {
+        const score = await evaluate({
+          ...compiled.options,
+          [x]: xValue,
+          [y]: yValue
+        }, source, data, mode, settings, simSettings);
+
+        callback(x, xValue, y, yValue, score);
+
+        return score;
+      });
+    });
+  });
+
+  await promiseAllLimit(10, promises);
+};
+
+export const runs = async (
+  source: string, 
+  data: Data[], 
+  mode: Mode,
+  settings: Settings, 
+  simSettings: SimulationSettings,
+  num: number,
+  callback: (score: Evaluation) => void
+) => {
+  const compiled = compileScript(source);
+
+  const promises: (() => Promise<Evaluation>)[] = [];
+
+  for (let i = 0; i < num; i++) {
+    promises.push(async () => {
+      const score = await evaluate({
+        ...compiled.options
+      }, source, data, mode, settings, simSettings);
+
+      callback(score);
+
+      return score;
+    });
+  }
+
+  await promiseAllLimit(10, promises);
 };

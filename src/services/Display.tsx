@@ -1,5 +1,12 @@
+import React from 'react';
+
 export const Display = {
-  number: (num: number): string => {
+  numToString: (num: number | string): string => {
+    if (typeof num === 'string') {
+      if (num.match(/[a-z]/i) || isNaN(parseFloat(num))) return num;
+      num = parseFloat(num);
+    }
+  
     if (num === 0) return num.toString();
     if (Math.abs(num) < 0.01) return num.toFixed(4);
     if (Math.abs(num) < 0.1) return num.toFixed(3);
@@ -11,7 +18,15 @@ export const Display = {
     if (Math.abs(num) < Math.pow(10, 15)) return (num / Math.pow(10, 12)).toFixed(1) + 'T';
     return (num / Math.pow(10, 15)).toFixed(1) + 'P';
   },
-  percentage: (ratio: number): string => {
-    return Display.number(ratio * 100) + '%';
+  number: (num: number | string): JSX.Element => {
+    const s = Display.numToString(num);
+    return <span title={num.toString()}>{s}</span>;
+  },
+  percentageToString: (ratio: number): string => {
+    return Display.numToString(ratio * 100) + '%';
+  },
+  percentage: (ratio: number): JSX.Element => {
+    const s = Display.percentageToString(ratio);
+    return <span title={ratio.toString()}>{s}</span>;
   },
 };

@@ -1,5 +1,5 @@
 import { expose } from "comlink";
-import {Settings, compileScript, Util } from 'trading-lib';
+import {Settings, compileScript, Util, Logger } from 'trading-lib';
 
 import { SimulationProvider } from '../services/SimulationProvider';
 import { SimulationSettings } from '../services/SimulationSettings';
@@ -15,12 +15,15 @@ const run = async function (
   scriptOptions: Record<string, any> | null,
   simSettings: SimulationSettings, 
   settings: Settings, 
-  onEvent: any | undefined
+  onEvent: any | undefined,
+  verbose: boolean = false
 ) {
   const script = compileScript(scriptCode);
   if (scriptOptions) {
     script.options = scriptOptions;
   }
+
+  Logger.verbose = verbose;
 
   settings = {
     ...settings,
@@ -56,7 +59,7 @@ const run = async function (
     };
   });
 
-  return await runSimulation(
+  const result = await runSimulation(
     new SimulationProvider(pairs, simSettings.capital, settings, simSettings),
     script,
     simSettings.start, 
@@ -65,6 +68,8 @@ const run = async function (
     simSettings,
     onEvent
   );
+
+  return result;
 };
 
 const exports = {

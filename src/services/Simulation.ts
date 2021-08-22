@@ -142,13 +142,13 @@ export async function runSimulation (
         provider.setDate(new Date(iTime * 1000));
         await updateStrategy(provider, script, settings);
 
-        const statPercentage = Math.floor(((time - startTime) / timeRange) * 1000);
-        const progressPercentage = Math.floor(((time - startTime) / timeRange) * 100);
+        const statPercentage = Math.floor(((time - startTime) / timeRange) * 10000);
+        const progressPercentage = Math.floor(((time - startTime) / timeRange) * 10);
 
         if (statPercentage > lastStatPercentage) {
           times.push(iTime);
       
-          balances.push(await provider.getBalance());
+          balances.push(await provider.getAvailableBalance());
           portolioSizes.push(await provider.getPortfolioSize());
 
           lastStatPercentage = statPercentage;
@@ -177,7 +177,7 @@ export async function runSimulation (
             const event: StrategyProgressEvent = {
               type: 'progress',
               data: {
-                percentage: progressPercentage,
+                percentage: progressPercentage * 10,
                 balanceHistory: balances,
                 portfolioHistory: portolioSizes,
                 priceHistory: priceHistory,
@@ -198,6 +198,7 @@ export async function runSimulation (
         pair.index++;
 
         if (!pair.active) {
+          console.log('Activate ' + pair.symbol + ' at ' + time + ' with price ' + pair.price);
           pair.active = true;
         }
       }
@@ -213,7 +214,8 @@ export async function runSimulation (
     time += intervalTime;
   }
 
-  balances.push(await provider.getBalance());
+  times.push(endTime);
+  balances.push(await provider.getAvailableBalance());
   portolioSizes.push(await provider.getPortfolioSize());
 
   const closePrices: {[symbol: string]: number} = {};

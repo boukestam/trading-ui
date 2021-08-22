@@ -10,6 +10,11 @@ import { Run } from './pages/Run';
 import { Settings } from 'trading-lib';
 import { SimulationSettings } from './services/SimulationSettings';
 import { Link, NavLink, Route, Switch } from 'react-router-dom';
+import { ListOptimizer } from './pages/ListOptimizer';
+import { GridOptimizer } from './pages/GridOptimizer';
+import { Monkey } from './pages/Monkey';
+import { GeneticOptimizer } from './pages/GeneticOptimizer';
+import { Display } from './services/Display';
 
 function App() {
   const [progress, setProgress] = useState<number>(0);
@@ -26,6 +31,30 @@ function App() {
   }, [mode]);
 
   const runRef = useRef<{
+    run: () => Promise<void>;
+  }>({
+    run: async () => {}
+  });
+
+  const listOptimizerRef = useRef<{
+    run: () => Promise<void>;
+  }>({
+    run: async () => {}
+  });
+
+  const gridOptimizerRef = useRef<{
+    run: () => Promise<void>;
+  }>({
+    run: async () => {}
+  });
+
+  const monkeyRef = useRef<{
+    run: () => Promise<void>;
+  }>({
+    run: async () => {}
+  });
+
+  const geneticRef = useRef<{
     run: () => Promise<void>;
   }>({
     run: async () => {}
@@ -66,9 +95,11 @@ function App() {
         <div className="header-title">Algo Sim</div>
         <div className="header-links">
           <NavLink exact to="/" className="header-link" activeClassName="header-link-active">Simulator</NavLink>
-          <NavLink to="/list" className="header-link" activeClassName="header-link-active">List optimizer</NavLink>
-          <NavLink to="/genetic" className="header-link" activeClassName="header-link-active">Genetic algorithm</NavLink>
-          <NavLink to="/annealing" className="header-link" activeClassName="header-link-active">Simulated annealing</NavLink>
+          <NavLink to="/list" className="header-link" activeClassName="header-link-active">List</NavLink>
+          <NavLink to="/grid" className="header-link" activeClassName="header-link-active">Grid</NavLink>
+          <NavLink to="/genetic" className="header-link" activeClassName="header-link-active">Genetic</NavLink>
+          <NavLink to="/annealing" className="header-link" activeClassName="header-link-active">Annealing</NavLink>
+          <NavLink to="/monkey" className="header-link" activeClassName="header-link-active">Monkey</NavLink>
         </div>
         <div className="header-controls">
             <div className="header-buttons">
@@ -77,13 +108,19 @@ function App() {
                   <button onClick={() => runRef.current && runRef.current.run()}>Run</button>
                 </Route>
                 <Route path="/list">
-                  <button onClick={() => optimize(list)}>List</button>
+                  <button onClick={() => listOptimizerRef.current && listOptimizerRef.current.run()}>Run</button>
+                </Route>
+                <Route path="/grid">
+                  <button onClick={() => gridOptimizerRef.current && gridOptimizerRef.current.run()}>Run</button>
                 </Route>
                 <Route path="/genetic">
-                  <button onClick={() => optimize(genetic)}>Genetic</button>
+                  <button onClick={() => geneticRef.current && geneticRef.current.run()}>Run</button>
                 </Route>
                 <Route path="/annealing">
-                  <button onClick={() => optimize(annealing)}>Annealing</button>
+                  <button onClick={() => optimize(annealing)}>Run</button>
+                </Route>
+                <Route path="/monkey">
+                  <button onClick={() => monkeyRef.current && monkeyRef.current.run()}>Run</button>
                 </Route>
               </Switch>
             </div>
@@ -91,7 +128,7 @@ function App() {
             <div className="progress">
               <div className="progress-bar" style={{width: progress === 0 ? 0 : progress + '%'}}></div>
             </div>
-            <div className="progress-text">{progress}%</div>
+            <div className="progress-text">{Display.number(progress)}%</div>
 
             <div>
               <select value={mode} onChange={e => {
@@ -108,6 +145,58 @@ function App() {
 
       <div className="content">
         <Switch>
+          <Route path="/list">
+            <ListOptimizer 
+              setProgress={setProgress} 
+              setScript={setScript} 
+              getData={getData} 
+              script={script} 
+              mode={modes[mode]}
+              settings={settings}
+              simSettings={simSettings}
+              ref={listOptimizerRef}
+            ></ListOptimizer>
+          </Route>
+
+          <Route path="/grid">
+            <GridOptimizer 
+              setProgress={setProgress} 
+              setScript={setScript} 
+              getData={getData} 
+              script={script} 
+              mode={modes[mode]}
+              settings={settings}
+              simSettings={simSettings}
+              ref={gridOptimizerRef}
+            ></GridOptimizer>
+          </Route>
+
+          <Route path="/monkey">
+            <Monkey 
+              setProgress={setProgress} 
+              setScript={setScript} 
+              getData={getData} 
+              script={script} 
+              mode={modes[mode]}
+              settings={settings}
+              simSettings={simSettings}
+              ref={monkeyRef}
+            ></Monkey>
+          </Route>
+
+          <Route path="/genetic">
+            <GeneticOptimizer 
+              setProgress={setProgress} 
+              setScript={setScript} 
+              getData={getData} 
+              script={script} 
+              mode={modes[mode]}
+              settings={settings}
+              simSettings={simSettings}
+              ref={geneticRef}
+            ></GeneticOptimizer>
+          </Route>
+
           <Route exact path="/">
             <Run 
               setProgress={setProgress} 

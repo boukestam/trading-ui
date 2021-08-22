@@ -17,11 +17,12 @@ export function Trades ({trades, onClick}: {trades: OutputTrade[], onClick: (tra
           <th>Profit</th>
           <th>Open</th>
           <th>Close</th>
+          <th>Cost</th>
         </tr>
       </thead>
       <tbody>
         {trades.map((trade, tradeIndex) => (
-          <tr className="trade" key={tradeIndex} onClick={() => {
+          <tr className="trade" key={tradeIndex} title={trade.note || JSON.stringify(trade.meta)} onClick={() => {
             console.log(trade);
             onClick(trade);
           }}>
@@ -37,6 +38,7 @@ export function Trades ({trades, onClick}: {trades: OutputTrade[], onClick: (tra
             </td>
             <td>{Display.number(trade.buy)}</td>
             <td>{trade.sell && Display.number(trade.sell)}</td>
+            <td>{Display.number(trade.cost)}</td>
           </tr>
         ))}
       </tbody>
