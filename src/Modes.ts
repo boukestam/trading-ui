@@ -116,7 +116,7 @@ const altMode: Mode = {
 const allMode: Mode = {
   ...altMode,
   start: new Date(Date.UTC(2020, 11, 1)),
-  end: new Date(Date.UTC(2021, 6, 27, 21))
+  end: new Date(Date.UTC(2021, 7, 26, 14))
 };
 
 const spotMode: Mode = {
@@ -173,7 +173,7 @@ const verifyMode: Mode = {
   ...altMode,
   capital: 4806.95386288,
   start: new Date(Date.UTC(2021, 6, 23, 22)),
-  end: new Date(Date.UTC(2021, 7, 17, 19)),
+  end: new Date(Date.UTC(2021, 7, 26, 14)),
   interval: '1h',
   dataInterval: '1h',
   simulationInterval: '1h',

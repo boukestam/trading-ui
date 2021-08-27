@@ -9,7 +9,7 @@ import { SimulationSettings } from '../services/SimulationSettings';
 import { Evaluation, runs } from '../services/Optimization';
 import { Display } from '../services/Display';
 
-const insertEntryCode = (source: string) => source.replace(/return /g, 'void ').replace('// [MONKEY_ENTRY]', `if (Math.random() < 0.04) {
+const insertEntryCode = (source: string) => source.replace(/return /g, 'void ').replace('// [MONKEY_ENTRY]', `if (Math.random() < 0.01) {
   if (Math.random() < 0.66) {
     return {
       direction: 'long',
